@@ -5,6 +5,8 @@
 // <author>Mark Junker</author>
 //-----------------------------------------------------------------------
 
+using FubarDev.FtpServer.Features;
+
 using Microsoft.Extensions.Logging;
 
 namespace FubarDev.FtpServer
@@ -18,13 +20,29 @@ namespace FubarDev.FtpServer
         /// Logs a trace message with the data of the <see cref="FtpCommand"/>.
         /// </summary>
         /// <param name="log">The <see cref="ILogger"/> to use.</param>
+        /// <param name="connection">The <see cref="IFtpConnection"/> to log.</param>
         /// <param name="command">The <see cref="FtpCommand"/> to log.</param>
-        public static void Command(this ILogger log, FtpCommand command)
+        public static void Command(this ILogger log, IFtpConnection connection, FtpCommand command)
         {
+            string username = "???";
+
+            IAuthorizationInformationFeature? authInfoFeature = connection.Features.Get<IAuthorizationInformationFeature>();
+            if (authInfoFeature != null)
+            {
+                if (authInfoFeature.FtpUser != null && authInfoFeature.FtpUser.Identity != null && authInfoFeature.FtpUser.Identity.Name != null)
+                {
+                    username = authInfoFeature.FtpUser.Identity.Name;
+                }
+            }
+
             var arguments = string.Equals(command.Name, "PASS", System.StringComparison.OrdinalIgnoreCase)
                 ? @"**************** (password omitted)"
                 : command.Argument;
-            log.LogDebug("{name} {arguments}", command.Name, arguments);
+
+            using (log.BeginScope("{Username}@{RemoteAddress}", username, connection.RemoteEndPoint.Address))
+            {
+                log.LogInformation("{name} {arguments}", command.Name, arguments);
+            }
         }
 
         /// <summary>
@@ -116,29 +134,31 @@ namespace FubarDev.FtpServer
         /// Logs a message with the data of the <see cref="FtpResponse"/>.
         /// </summary>
         /// <param name="log">The <see cref="ILogger"/> to use.</param>
+        /// <param name="connection">The <see cref="IFtpConnection"/> to use.</param>
         /// <param name="response">The <see cref="FtpResponse"/> to log.</param>
         /// <remarks>
         /// It logs either a trace, debug, or warning message depending on the
         /// <see cref="FtpResponse.Code"/>.
         /// </remarks>
-        public static void Log(this ILogger log, IFtpResponse response)
+        public static void LogResponse(this ILogger log, IFtpConnection connection, string response)
         {
-            if (response.Code >= 200 && response.Code < 300)
+            string username = "???";
+
+            IAuthorizationInformationFeature? authInfoFeature = connection.Features.Get<IAuthorizationInformationFeature>();
+            if (authInfoFeature != null)
             {
-                log.Trace(response);
+                if (authInfoFeature.FtpUser != null && authInfoFeature.FtpUser.Identity != null && authInfoFeature.FtpUser.Identity.Name != null)
+                {
+                    username = authInfoFeature.FtpUser.Identity.Name;
+                }
             }
-            else if (response.Code >= 300 && response.Code < 400)
+
+            using (log.BeginScope("{Username}@{RemoteAddress}", username, connection.RemoteEndPoint.Address))
             {
-                log.Info(response);
+                log.LogInformation("{response}", response);
             }
-            else if (response.Code < 200)
-            {
-                log.Debug(response);
-            }
-            else
-            {
-                log.Warn(response);
-            }
+
+            return;
         }
 
 #if NETSTANDARD1_3

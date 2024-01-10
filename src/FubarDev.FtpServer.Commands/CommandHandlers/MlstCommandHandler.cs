@@ -33,7 +33,7 @@ namespace FubarDev.FtpServer.CommandHandlers
         /// <summary>
         /// The set of well-known facts.
         /// </summary>
-        internal static readonly ISet<string> KnownFacts = new HashSet<string> { "type", "size", "perm", "modify", "create" };
+        internal static readonly ISet<string> KnownFacts = new HashSet<string> { "type", "size", "UNIX.mode", "modify", "create", "UNIX.uid", "UNIX.gid" };
 
         private readonly ILogger<MlstCommandHandler>? _logger;
 

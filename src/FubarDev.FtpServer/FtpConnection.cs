@@ -399,7 +399,7 @@ namespace FubarDev.FtpServer
                         _serverCommandChannel.Writer.Complete();
                         await _commandReader.ConfigureAwait(false);
 
-                        if (_commandChannelReader != null)
+                        if (_commandChannelReader != null && _commandChannelReader.Status != TaskStatus.WaitingForActivation)
                         {
                             await _commandChannelReader.ConfigureAwait(false);
                         }
@@ -786,38 +786,28 @@ namespace FubarDev.FtpServer
             try
             {
                 Task<bool>? readTask = null;
+
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    if (readTask == null)
-                    {
-                        readTask = commandReader.WaitToReadAsync(cancellationToken).AsTask();
-                    }
-
-                    var tasks = new List<Task>() { readTask };
                     var backgroundTaskLifetimeService = Features.Get<IBackgroundTaskLifetimeFeature?>();
                     if (backgroundTaskLifetimeService != null)
                     {
-                        tasks.Add(backgroundTaskLifetimeService.Task);
-                    }
+                        // A background task is in progress. Wait for it to finish.
+                        await Task.WhenAny(backgroundTaskLifetimeService.Task).ConfigureAwait(false);
 
-                    Debug.WriteLine($"Waiting for {tasks.Count} tasks");
-                    var completedTask = await Task.WhenAny(tasks.ToArray()).ConfigureAwait(false);
-                    if (completedTask == null)
-                    {
-                        break;
-                    }
-
-                    Debug.WriteLine($"Task {completedTask} completed");
-
-                    // ReSharper disable once PatternAlwaysOfType
-                    if (backgroundTaskLifetimeService?.Task == completedTask)
-                    {
-                        await completedTask.ConfigureAwait(false);
+                        // The background task has finished. Clear it.
                         Features.Set<IBackgroundTaskLifetimeFeature?>(null);
                     }
                     else
                     {
+                        // No background transfer in progress. Read the next command.
+                        if (readTask == null)
+                        {
+                            readTask = commandReader.WaitToReadAsync(cancellationToken).AsTask();
+                        }
+
                         var hasCommand = await readTask.ConfigureAwait(false);
+
                         readTask = null;
 
                         if (!hasCommand)
@@ -828,7 +818,7 @@ namespace FubarDev.FtpServer
                         while (commandReader.TryRead(out var command))
                         {
                             PublishEvent(new FtpConnectionCommandReceivedEvent(command));
-                            _logger?.Command(command);
+                            _logger?.Command(this, command);
                             var context = new FtpContext(command, _serverCommandChannel, this);
                             await requestDelegate(context)
                                .ConfigureAwait(false);
@@ -1021,6 +1011,10 @@ namespace FubarDev.FtpServer
 
         private class SecureConnectionFeature : ISecureConnectionFeature
         {
+            private bool isencrypted = false;
+
+            public event EncryptedChange OnEncryptedChange;
+
             /// <inheritdoc />
             [Obsolete("Unused and will be removed.")]
             public NetworkStream OriginalStream => throw new InvalidOperationException("Stream is not available.");
@@ -1030,6 +1024,18 @@ namespace FubarDev.FtpServer
 
             /// <inheritdoc />
             public CloseEncryptedStreamDelegate CloseEncryptedControlStream { get; set; } = ct => Task.CompletedTask;
+            public bool IsEncrypted
+            {
+                get
+                {
+                    return isencrypted;
+                }
+                set
+                {
+                    OnEncryptedChange(this, isencrypted, value);
+                    isencrypted = value;
+                }
+            }
         }
 
         private class DuplexPipe : IDuplexPipe

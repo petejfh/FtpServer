@@ -58,7 +58,7 @@ namespace FubarDev.FtpServer.ServerCommandHandlers
                    .ConfigureAwait(false);
                 if (line.HasText)
                 {
-                    _logger?.LogDebug("{Response}", line.Text);
+                    _logger?.LogResponse(connection, line.Text);
                     var data = encoding.GetBytes($"{line.Text}\r\n");
                     var memory = writer.GetMemory(data.Length);
                     data.AsSpan().CopyTo(memory.Span);

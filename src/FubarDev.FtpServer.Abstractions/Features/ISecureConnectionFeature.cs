@@ -10,6 +10,9 @@ namespace FubarDev.FtpServer.Features
     /// <summary>
     /// Information about low-level connection information.
     /// </summary>
+
+    public delegate void EncryptedChange(object sender, bool previouslyEncrypted, bool nowEncrypted);
+
     public interface ISecureConnectionFeature
     {
         /// <summary>
@@ -28,5 +31,9 @@ namespace FubarDev.FtpServer.Features
         /// </summary>
         /// <remarks>This doesn't apply to encrypted data streams.</remarks>
         CloseEncryptedStreamDelegate CloseEncryptedControlStream { get; set; }
+
+        bool IsEncrypted { get; set; }
+
+        event EncryptedChange OnEncryptedChange; // { get; set; }
     }
 }

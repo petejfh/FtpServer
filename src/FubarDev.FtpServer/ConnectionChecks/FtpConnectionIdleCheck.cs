@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 
 using FubarDev.FtpServer.Events;
+using FubarDev.FtpServer.Features;
 
 using Microsoft.Extensions.Options;
 
@@ -83,6 +84,11 @@ namespace FubarDev.FtpServer.ConnectionChecks
                         result = new FtpConnectionCheckResult(true);
                     }
                     else if (_activeDataTransfers.Count != 0)
+                    {
+                        UpdateLastActiveTime();
+                        result = new FtpConnectionCheckResult(true);
+                    }
+                    else if (context.Connection.Features.Get<IBackgroundTaskLifetimeFeature?>() != null)
                     {
                         UpdateLastActiveTime();
                         result = new FtpConnectionCheckResult(true);

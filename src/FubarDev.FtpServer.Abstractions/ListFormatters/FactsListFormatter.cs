@@ -104,6 +104,7 @@ namespace FubarDev.FtpServer.ListFormatters
             {
                 result.AppendFormat("{0}={1};", fact.Name, fact.Value);
             }
+
             var fullName = _absoluteName ? _enumerator.GetFullPath(entryName) : entryName;
             result.AppendFormat(" {0}", fullName);
             return result.ToString();
@@ -113,7 +114,7 @@ namespace FubarDev.FtpServer.ListFormatters
         {
             var result = new List<IFact>()
             {
-                new PermissionsFact(_user, parentEntry, currentEntry),
+                new PermissionsFact(currentEntry),
                 typeFact,
             };
             if (currentEntry.LastWriteTime.HasValue)
@@ -126,6 +127,9 @@ namespace FubarDev.FtpServer.ListFormatters
                 result.Add(new CreateFact(currentEntry.CreatedTime.Value));
             }
 
+            result.Add(new UnixOwnerFact(currentEntry.Owner));
+            result.Add(new UnixGroupFact(currentEntry.Group));
+
             return result;
         }
 
@@ -133,7 +137,7 @@ namespace FubarDev.FtpServer.ListFormatters
         {
             var result = new List<IFact>()
             {
-                new PermissionsFact(_user, fileSystem, directoryEntry, entry),
+                new PermissionsFact(entry),
                 new SizeFact(entry.Size),
                 new TypeFact(entry),
             };
@@ -146,6 +150,9 @@ namespace FubarDev.FtpServer.ListFormatters
             {
                 result.Add(new CreateFact(entry.CreatedTime.Value));
             }
+
+            result.Add(new UnixOwnerFact(directoryEntry.Owner));
+            result.Add(new UnixGroupFact(directoryEntry.Group));
 
             return result;
         }
