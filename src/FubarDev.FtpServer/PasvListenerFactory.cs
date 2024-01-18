@@ -97,6 +97,10 @@ namespace FubarDev.FtpServer
                             throw;
                         }
                     }
+                    catch (Exception ex)
+                    {
+                        //
+                    }
                 }
 
                 // if we reach this point, we have not been able to create a listener within range

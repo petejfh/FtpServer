@@ -3,6 +3,7 @@
 // </copyright>
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -41,11 +42,22 @@ namespace FubarDev.FtpServer.Authentication
             {
                 _logger?.LogTrace("Create SSL stream");
                 var sslStream = CreateSslStream(unencryptedStream, keepOpen);
+
                 try
                 {
                     _logger?.LogTrace("Authenticate as server");
-                    await sslStream.AuthenticateAsServerAsync(certificate)
+
+                   
+                    SslServerAuthenticationOptions opts = new SslServerAuthenticationOptions();
+                    // opts.AllowTlsResume = true;
+                    opts.AllowRenegotiation = true;
+                    opts.EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls13;
+                    opts.ServerCertificate = certificate;
+
+                    await sslStream.AuthenticateAsServerAsync(opts)
                        .ConfigureAwait(false);
+                   
+ //                   await sslStream.AuthenticateAsServerAsync(certificate).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -67,7 +79,7 @@ namespace FubarDev.FtpServer.Authentication
         public async Task CloseStreamAsync(Stream sslStream, CancellationToken cancellationToken)
         {
             if (sslStream is SslStream s)
-            {
+            {               
                 await s.ShutdownAsync().ConfigureAwait(false);
 
                 // Why is this needed? I get a GnuTLS error -110 when it's not called!
