@@ -47,17 +47,16 @@ namespace FubarDev.FtpServer.Authentication
                 {
                     _logger?.LogTrace("Authenticate as server");
 
-                   
                     SslServerAuthenticationOptions opts = new SslServerAuthenticationOptions();
-                    // opts.AllowTlsResume = true;
+#if NET8_0_OR_GREATER
+                    opts.AllowTlsResume = true;
+#endif
                     opts.AllowRenegotiation = true;
-                    opts.EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls13;
+                    opts.EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13;
                     opts.ServerCertificate = certificate;
 
                     await sslStream.AuthenticateAsServerAsync(opts)
                        .ConfigureAwait(false);
-                   
- //                   await sslStream.AuthenticateAsServerAsync(certificate).ConfigureAwait(false);
                 }
                 catch
                 {
