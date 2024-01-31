@@ -196,8 +196,22 @@ namespace FubarDev.FtpServer
         /// </remarks>
         private void CloseExpiredConnections()
         {
+            _log.LogInformation($"Processing CloseExpiredConnections");
             foreach (var connection in GetConnections())
             {
+                string username = "???";
+
+                IAuthorizationInformationFeature? authInfoFeature = connection.Features.Get<IAuthorizationInformationFeature>();
+                if (authInfoFeature != null)
+                {
+                    if (authInfoFeature.FtpUser != null && authInfoFeature.FtpUser.Identity != null && authInfoFeature.FtpUser.Identity.Name != null)
+                    {
+                        username = authInfoFeature.FtpUser.Identity.Name;
+                    }
+                }
+
+                string conn = $"{username}@{connection.RemoteEndPoint}";
+
                 try
                 {
                     var keepAliveFeature = connection.Features.Get<IFtpConnectionStatusCheck>();
@@ -205,8 +219,11 @@ namespace FubarDev.FtpServer
                     if (isAlive)
                     {
                         // Ignore connections that are still alive.
+                        _log.LogInformation($"Connection {conn} is alive.");
                         continue;
                     }
+
+                    _log.LogInformation($"Connection {conn} is not alive.");
 
                     var serverCommandFeature = connection.Features.Get<IServerCommandFeature>();
 
@@ -219,6 +236,7 @@ namespace FubarDev.FtpServer
                     // Errors are most likely indicating a closed connection. Nothing to do here...
                 }
             }
+            _log.LogInformation($"Finished processing CloseExpiredConnections");
         }
 
         private IEnumerable<ConnectionInitAsyncDelegate> OnConfigureConnection(IFtpConnection connection)

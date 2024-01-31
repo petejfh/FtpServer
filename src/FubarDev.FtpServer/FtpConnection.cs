@@ -28,6 +28,7 @@ using FubarDev.FtpServer.DataConnection;
 using FubarDev.FtpServer.Events;
 using FubarDev.FtpServer.Features;
 using FubarDev.FtpServer.Features.Impl;
+using FubarDev.FtpServer.FileSystem;
 using FubarDev.FtpServer.Localization;
 using FubarDev.FtpServer.Networking;
 using FubarDev.FtpServer.ServerCommands;
@@ -110,11 +111,6 @@ namespace FubarDev.FtpServer
 
         private readonly IdleCheck _idleCheck;
 
-#pragma warning disable 612
-        [Obsolete]
-        private readonly FtpConnectionKeepAlive _keepAlive;
-#pragma warning restore 612
-
         private readonly IAuthorizationInformationFeature _authorizationInformationFeature;
 
         private bool _connectionClosing;
@@ -158,10 +154,9 @@ namespace FubarDev.FtpServer
             ConnectionId = "FTP-" + Guid.NewGuid().ToString("N");
 
             _dataPort = portOptions.Value.DataPort;
-#pragma warning disable 612
-            _keepAlive = new FtpConnectionKeepAlive(this);
-#pragma warning restore 612
-            _idleCheck = new IdleCheck(this);
+
+            _idleCheck = new IdleCheck(this, loggerFactory.CreateLogger<IFtpConnectionStatusCheck>());
+
             var remoteEndPoint = _remoteEndPoint = (IPEndPoint)socket.Client.RemoteEndPoint;
 #pragma warning disable 618
             RemoteAddress = new Address(remoteEndPoint.Address.ToString(), remoteEndPoint.Port);
@@ -223,11 +218,7 @@ namespace FubarDev.FtpServer
             parentFeatures.Set<INetworkStreamFeature>(_networkStreamFeature);
             parentFeatures.Set<IFtpConnectionEventHost>(this);
             parentFeatures.Set<IFtpConnectionStatusCheck>(_idleCheck);
-#pragma warning disable 618
-#pragma warning disable 612
-            parentFeatures.Set<IFtpConnectionKeepAlive>(_keepAlive);
-#pragma warning restore 612
-#pragma warning restore 618
+
             parentFeatures.Set<IServiceProvidersFeature>(new ServiceProvidersFeature(ConnectionServices));
 
             var features = new FeatureCollection(parentFeatures);
@@ -329,11 +320,9 @@ namespace FubarDev.FtpServer
                    .ConfigureAwait(false);
                 Features.Set(dataConnectionFeature);
 
+
                 // Set the checks for the activity information of the FTP connection.
                 var checks = ConnectionServices.GetRequiredService<IEnumerable<IFtpConnectionCheck>>().ToList();
-#pragma warning disable 612
-                _keepAlive.SetChecks(checks);
-#pragma warning restore 612
                 _idleCheck.SetChecks(checks);
 
                 // Connection information
@@ -854,21 +843,54 @@ namespace FubarDev.FtpServer
         {
             private readonly IFtpConnection _connection;
             private readonly List<IFtpConnectionCheck> _checks = new List<IFtpConnectionCheck>();
+            private readonly ILogger<IFtpConnectionStatusCheck> _logger;
 
-            public IdleCheck(IFtpConnection connection)
+            public IdleCheck(IFtpConnection connection, ILogger<IFtpConnectionStatusCheck> logger)
             {
                 _connection = connection;
+                this._logger = logger;
             }
 
             /// <inheritdoc />
             public bool CheckIfAlive()
             {
                 var context = new FtpConnectionCheckContext(_connection);
+
+                string username = "???";
+
+                IAuthorizationInformationFeature? authInfoFeature = _connection.Features.Get<IAuthorizationInformationFeature>();
+                if (authInfoFeature != null)
+                {
+                    if (authInfoFeature.FtpUser != null && authInfoFeature.FtpUser.Identity != null && authInfoFeature.FtpUser.Identity.Name != null)
+                    {
+                        username = authInfoFeature.FtpUser.Identity.Name;
+                    }
+                }
+
+                string conn = $"{username}@{_connection.RemoteEndPoint}";
+
+                foreach (IFtpConnectionCheck check in _checks)
+                {
+                    FtpConnectionCheckResult result = check.Check(context);
+
+                    this._logger.LogInformation($"IdleCheck of type {check} for connection {conn}: IsUsable: {result.IsUsable}");
+
+                    if (!result.IsUsable)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+
+                /*
                 var checkResults = _checks
                    .Select(x => x.Check(context))
                    .ToArray();
+                
                 return checkResults.Select(x => x.IsUsable)
                    .Aggregate(true, (pv, item) => pv && item);
+                */
             }
 
             public void SetChecks(IEnumerable<IFtpConnectionCheck> checks)
