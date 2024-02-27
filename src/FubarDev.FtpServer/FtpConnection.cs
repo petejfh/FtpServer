@@ -221,6 +221,8 @@ namespace FubarDev.FtpServer
 
             parentFeatures.Set<IServiceProvidersFeature>(new ServiceProvidersFeature(ConnectionServices));
 
+            parentFeatures.Set<IConnectionCheckFeature>(new ConnectionCheckFeature(options, this, loggerFactory.CreateLogger<IConnectionCheckFeature>()));
+
             var features = new FeatureCollection(parentFeatures);
 #pragma warning disable 618
             Data = new FtpConnectionData(
