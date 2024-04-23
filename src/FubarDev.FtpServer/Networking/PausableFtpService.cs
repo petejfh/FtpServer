@@ -72,38 +72,46 @@ namespace FubarDev.FtpServer.Networking
 
             while (++attempt <= maxattempts)
             {
-                if (Status != FtpServiceStatus.ReadyToRun)
-                {
-                    throw new InvalidOperationException($"Status must be {FtpServiceStatus.ReadyToRun}, but was {Status}.");
-                }
-
-                using var semaphore = new SemaphoreSlim(0, 1);
-
                 try
                 {
-                    _jobPaused = new CancellationTokenSource();
-                    _task = RunAsync(
-                        new Progress<FtpServiceStatus>(
-                            status =>
-                            {
-                                Status = status;
+                    if (Status != FtpServiceStatus.ReadyToRun)
+                    {
+                        throw new InvalidOperationException($"Status must be {FtpServiceStatus.ReadyToRun}, but was {Status}.");
+                    }
 
-                                if (status == FtpServiceStatus.Running)
+                    using (SemaphoreSlim semaphore = new SemaphoreSlim(0, 1))
+                    {
+                        _jobPaused = new CancellationTokenSource();
+                        _task = RunAsync(
+                            new Progress<FtpServiceStatus>(
+                                status =>
                                 {
-                                    // ReSharper disable once AccessToDisposedClosure
-                                    semaphore.Release();
-                                }
-                            }));
+                                    Status = status;
 
-                    await semaphore.WaitAsync(cancellationToken);
-                    return;
+                                    if (status == FtpServiceStatus.Running)
+                                    {
+                                        // ReSharper disable once AccessToDisposedClosure
+                                        try
+                                        {
+                                            semaphore.Release();
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Logger.LogWarning($"Exception in PausableFtpService StartAsync whilst releasing the semaphore. {ex}");
+                                        }
+                                    }
+                                }));
+
+                        await semaphore.WaitAsync(cancellationToken);
+                        return;
+                    }
                 }
                 catch (ObjectDisposedException ex)
                 {
                     Logger.LogWarning($"Attempt {attempt}/{maxattempts}: An ObjectDisposedException was caught in StartAsync(): Object name: {ex.ObjectName}, Class: {GetType()}");
                 }
 
-                if (attempt < maxattempts )
+                if (attempt < maxattempts)
                 {
                     await Task.Delay(delay);
                 }
