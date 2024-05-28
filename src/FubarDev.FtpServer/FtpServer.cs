@@ -210,7 +210,7 @@ namespace FubarDev.FtpServer
                     }
                 }
 
-                string conn = $"{username}@{connection.RemoteEndPoint}";
+             //   string conn = $"{username}@{connection.RemoteEndPoint}";
 
                 try
                 {
@@ -219,11 +219,11 @@ namespace FubarDev.FtpServer
                     if (isAlive)
                     {
                         // Ignore connections that are still alive.
-                        _log.LogInformation($"Connection {conn} is alive.");
+                        _log.LogInformation($"Connection {username} is alive.");
                         continue;
                     }
 
-                    _log.LogInformation($"Connection {conn} is not alive.");
+                    _log.LogInformation($"Connection {username} is not alive.");
 
                     var serverCommandFeature = connection.Features.Get<IServerCommandFeature>();
 

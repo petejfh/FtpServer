@@ -14,9 +14,9 @@ namespace FubarDev.FtpServer.CommandExtensions
     /// <summary>
     /// The implementation of the <c>OPTS UTF8</c> command.
     /// </summary>
-    [FtpCommandHandlerExtension("UTF8", "OPTS", false)]
-    [FtpCommandHandlerExtension("UTF-8", "OPTS", false)]
-    [FtpFeatureText("UTF8")]
+//    [FtpCommandHandlerExtension("UTF8", "OPTS", false)]
+//    [FtpCommandHandlerExtension("UTF-8", "OPTS", false)]
+//    [FtpFeatureText("UTF8")]
     public class OptsUtf8CommandExtension : FtpCommandHandlerExtension
     {
         private static readonly UTF8Encoding _encodingUtf8 = new UTF8Encoding(false);

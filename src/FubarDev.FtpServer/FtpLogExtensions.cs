@@ -39,7 +39,7 @@ namespace FubarDev.FtpServer
                 ? @"**************** (password omitted)"
                 : command.Argument;
 
-            using (log.BeginScope("{Username}@{RemoteAddress}", username, connection.RemoteEndPoint.Address))
+            using (log.BeginScope("{Username}@{RemoteEndPoint}", username, connection.RemoteEndPoint))
             {
                 log.LogInformation("{name} {arguments}", command.Name, arguments);
             }
@@ -153,7 +153,7 @@ namespace FubarDev.FtpServer
                 }
             }
 
-            using (log.BeginScope("{Username}@{RemoteAddress}", username, connection.RemoteEndPoint.Address))
+            using (log.BeginScope("{Username}@{RemoteEndPoint}", username, connection.RemoteEndPoint))
             {
                 log.LogInformation("{response}", response);
             }

@@ -63,7 +63,7 @@ namespace FubarDev.FtpServer.Features.Impl
 
         private void Log(string s)
         {
-            _logger.LogInformation($"ConnectionCheckFeature: {s}");
+            _logger.LogTrace($"ConnectionCheckFeature: {s}");
         }
 
         private class EventObserver : IObserver<IFtpConnectionEvent>

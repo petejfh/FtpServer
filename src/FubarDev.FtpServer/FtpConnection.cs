@@ -875,7 +875,7 @@ namespace FubarDev.FtpServer
                 {
                     FtpConnectionCheckResult result = check.Check(context);
 
-                    this._logger.LogInformation($"IdleCheck of type {check} for connection {conn}: IsUsable: {result.IsUsable}");
+                    this._logger.LogTrace($"IdleCheck of type {check} for connection {conn}: IsUsable: {result.IsUsable}");
 
                     if (!result.IsUsable)
                     {
