@@ -48,18 +48,37 @@ namespace FubarDev.FtpServer.Authentication
                     _logger?.LogTrace("Authenticate as server");
 
                     SslServerAuthenticationOptions opts = new SslServerAuthenticationOptions();
+                    opts.ServerCertificate = certificate;
+                    opts.ClientCertificateRequired = false;
+                    opts.EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12;
+                    opts.CertificateRevocationCheckMode = X509RevocationMode.NoCheck;
+                    opts.EncryptionPolicy = EncryptionPolicy.RequireEncryption;
+                    
 #if NET8_0_OR_GREATER
+                    // Left at the .NET default (true). Setting this to false was tried as a fix for
+                    // the intermittent control-connection resets under concurrent load (see below) -
+                    // ruled out by testing: the same failures recur with resumption disabled, and
+                    // turning it off costs a real security property (FTPS clients like FileZilla
+                    // warn when the data connection can't resume the control connection's session).
                     opts.AllowTlsResume = true;
 #endif
-                    opts.AllowRenegotiation = true;
-                    opts.EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13;
-                    opts.ServerCertificate = certificate;
+                    // Server never requests client certs mid-session (ClientCertificateRequired is
+                    // false and there's no protocol upgrade path); disabling renegotiation closes
+                    // off the renegotiation DoS/MITM surface at no functional cost.
+                    opts.AllowRenegotiation = false;
 
-                    await sslStream.AuthenticateAsServerAsync(opts)
+                    await sslStream.AuthenticateAsServerAsync(opts, cancellationToken)
                        .ConfigureAwait(false);
+                    
+                    _logger?.LogDebug("SSL/TLS authentication complete. Protocol: {Protocol}, Cipher: {Cipher}, KeyExchange: {KeyExchange}, Hash: {Hash}", 
+                        sslStream.SslProtocol, 
+                        sslStream.CipherAlgorithm, 
+                        sslStream.KeyExchangeAlgorithm,
+                        sslStream.HashAlgorithm);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger?.LogError(ex, "SSL/TLS authentication failed: {Message}", ex.Message);
                     sslStream.Dispose();
                     throw;
                 }
@@ -68,7 +87,7 @@ namespace FubarDev.FtpServer.Authentication
             }
             catch (Exception ex)
             {
-                _logger?.LogError(0, ex, ex.Message);
+                _logger?.LogError(ex, "Failed to wrap stream in SSL: {Message}", ex.Message);
                 throw;
             }
         }
@@ -78,14 +97,31 @@ namespace FubarDev.FtpServer.Authentication
         public async Task CloseStreamAsync(Stream sslStream, CancellationToken cancellationToken)
         {
             if (sslStream is SslStream s)
-            {               
-                await s.ShutdownAsync().ConfigureAwait(false);
+            {
+                try
+                {
+                    await s.ShutdownAsync().ConfigureAwait(false);
 
-                // Why is this needed? I get a GnuTLS error -110 when it's not called!
-                await Task.Yield();
+                    // Why is this needed? I get a GnuTLS error -110 when it's not called!
+                    await Task.Yield();
 
-                await s.FlushAsync(cancellationToken).ConfigureAwait(false);
-                s.Close();
+                    await s.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "Error during SSL stream shutdown: {Message}", ex.Message);
+                }
+                finally
+                {
+                    try
+                    {
+                        s.Close();
+                    }
+                    catch
+                    {
+                        // Ignore close errors
+                    }
+                }
             }
         }
 #else
