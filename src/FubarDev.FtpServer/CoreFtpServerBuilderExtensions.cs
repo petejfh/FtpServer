@@ -10,8 +10,8 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using FubarDev.FtpServer.Authentication;
+using FubarDev.FtpServer.Features;
 
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FubarDev.FtpServer

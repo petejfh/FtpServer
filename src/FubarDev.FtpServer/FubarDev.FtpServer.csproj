@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>TCP-based FTP server implementation</Description>
     <OutputType>Library</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|AnyCPU'">
     <DebugType>embedded</DebugType>
@@ -17,6 +17,7 @@
     <Optimize>False</Optimize>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Features" Version="10.0.11" />
     <PackageReference Include="Scrutor" Version="4.2.2" />
   </ItemGroup>
   <ItemGroup>

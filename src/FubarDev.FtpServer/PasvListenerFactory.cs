@@ -90,16 +90,22 @@ namespace FubarDev.FtpServer
                     }
                     catch (SocketException se)
                     {
-                        // retry if the socket is already in use, else throw the underlying exception
-                        if (se.SocketErrorCode != SocketError.AddressAlreadyInUse)
+                        // Retry on a different port if this one is already in use, or momentarily
+                        // unbindable because the OS handed it out as an ephemeral port for an
+                        // unrelated outbound connection (observed as AccessDenied on Windows when
+                        // the PASV range overlaps the OS's dynamic port range). Anything else is fatal.
+                        if (se.SocketErrorCode != SocketError.AddressAlreadyInUse
+                            && se.SocketErrorCode != SocketError.AccessDenied)
                         {
                             _log?.LogError(se, "Could not create listener");
                             throw;
                         }
+
+                        _log?.LogDebug(se, "Could not bind PASV listener on port {port} ({error}), trying another", port, se.SocketErrorCode);
                     }
                     catch (Exception ex)
                     {
-                        //
+                        _log?.LogDebug(ex, "Could not bind PASV listener on port {port}, trying another", port);
                     }
                 }
 

@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Description>Commands for the portable FTP server</Description>
     <RootNamespace>FubarDev.FtpServer</RootNamespace>
     <PackageTags>portable;FTP;server</PackageTags>

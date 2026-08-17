@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net8.0</TargetFrameworks>
+    <TargetFrameworks>net10.0</TargetFrameworks>
     <Description>Interfaces for the portable FTP server</Description>
     <RootNamespace>FubarDev.FtpServer</RootNamespace>
     <PackageTags>portable;FTP;server</PackageTags>
@@ -15,14 +15,14 @@
     <Optimize>False</Optimize>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
+    <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Extensions.Features" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.11" />
     <PackageReference Include="NGettext" Version="0.6.7" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="System.Net.Sockets" Version="4.3.0" />
-    <PackageReference Include="System.Threading.Channels" Version="6.0.0" />
+    <PackageReference Include="System.Threading.Channels" Version="10.0.11" />
   </ItemGroup>
   <Import Project="..\FubarDev.FtpServer.Shared\FubarDev.FtpServer.Shared.projitems" Label="Shared" />
   <Import Project="../../PackageLibrary.props" />
